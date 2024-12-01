@@ -1,0 +1,59 @@
+﻿@model IEnumerable<Project.Models.Currency>
+
+@{
+    ViewData["Title"] = "Currencies";
+}
+
+<!-- Wyświetlanie komunikatu z TempData -->
+@if (TempData["Message"] != null)
+{
+    <div id="successMessage" class="alert alert-success">
+        @TempData["Message"]
+    </div>
+}
+
+<h2>Lista walut</h2>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Rate</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var currency in Model)
+        {
+            <tr>
+                <td>@currency.Code</td>
+                <td>@currency.Rate.ToString("F2")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@currency.Id">Details</a> |
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Przyciski -->
+<div>
+    <form asp-action="RefreshRates" method="post">
+        <button type="submit" class="btn btn-primary">Odśwież kursy</button>
+    </form>
+</div>
+
+<!-- JavaScript do automatycznego znikania komunikatu -->
+<script>
+    // Sprawdzamy, czy element komunikatu istnieje
+    var messageElement = document.getElementById("successMessage");
+    if (messageElement) {
+        // Ukrywamy komunikat po 2 sekundach
+        setTimeout(function () {
+            messageElement.style.display = "none";
+        }, 2000); // 2000 ms = 2 sekundy
+    }
+</script>
