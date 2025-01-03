@@ -8,10 +8,10 @@ namespace Project.Models
 
         [Required]
         [StringLength(3, ErrorMessage = "Currency code must be 3 characters.")]
-        public string Code { get; set; }  // Kod waluty, np. USD, EUR
+        public string Code { get; set; }  // Kod waluty, np. USD
 
         [Required]
         [DataType(DataType.Currency)]
-        public decimal Rate { get; set; }  // Kurs waluty względem PLN lub innej bazowej
+        public decimal Rate { get; set; }  // Kurs waluty względem PLN
     }
 }

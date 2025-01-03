@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore; // Dodane
 using Project.Data;
 using Project.Models;
 using static System.Reflection.Metadata.BlobBuilder;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 public class CurrenciesController : Controller
@@ -18,80 +19,39 @@ public class CurrenciesController : Controller
 
     public async Task<IActionResult> Index()
     {
-        // Pobierz dane o kursach walut z API dla kilku walut
-        var currencyCodes = new List<string> { "USD", "EUR", "GBP" };
+        // Pobierz dynamiczną listę kodów walut z API
+        var currencyCodes = await _currencyService.GetAllCurrencyCodesAsync();
 
         var currencyRates = new List<CurrencyRate>();
-        int i = 0;
-        foreach(var x in currencyCodes)
+
+        // Pobierz szczegółowe dane dla każdej waluty
+        foreach (var code in currencyCodes)
         {
-            currencyRates.Add(await _currencyService.GetCurrencyRateAsync(currencyCodes[i]));
-            i++;
+            currencyRates.Add(await _currencyService.GetCurrencyRateAsync(code));
         }
 
-
-        // Sprawdź i zaktualizuj kursy w bazie danych
-        foreach (var rates in currencyRates)
-        {
-            // Pobierz pierwszy (i jedyny) element z listy "Rates"
-            var rate = rates.Rates.First();
-
-            // Sprawdź, czy waluta już istnieje w bazie za pomocą pola "Code"
-            var existingCurrency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == rates.Code);
-
-            // Zaktualizuj kurs
-            existingCurrency.Rate = rate.Mid;
-            _context.Currencies.Update(existingCurrency);
-
-        }
-
-        // Zapisz zmiany w bazie danych
-        await _context.SaveChangesAsync();
-
-        // Pobierz wszystkie waluty i przekaż je do widoku
-        var currencies = await _context.Currencies.ToListAsync();
-        return View(currencies);
-    }
-
-    //Refresh rates 
-    [HttpPost]
-    public async Task<IActionResult> RefreshRates()
-    {
-        // Pobierz dane o kursach walut z API dla kilku walut
-        var currencyCodes = new List<string> { "USD", "EUR", "GBP" };
-
-        var currencyRates = new List<CurrencyRate>();
-        int i = 0;
-        foreach (var x in currencyCodes)
-        {
-            currencyRates.Add(await _currencyService.GetCurrencyRateAsync(currencyCodes[i]));
-            i++;
-        }
-
-
-        // Sprawdź i zaktualizuj kursy w bazie danych
-        foreach (var rates in currencyRates)
-        {
-            // Pobierz pierwszy (i jedyny) element z listy "Rates"
-            var rate = rates.Rates.First();
-
-            // Sprawdź, czy waluta już istnieje w bazie za pomocą pola "Code"
-            var existingCurrency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == rates.Code);
-
-            // Zaktualizuj kurs
-            existingCurrency.Rate = rate.Mid;
-            _context.Currencies.Update(existingCurrency);
-
-        }
-
-        // W metodzie RefreshRates
+        // Aktualizacja bazy danych
         foreach (var rates in currencyRates)
         {
             var rate = rates.Rates.First();
             var existingCurrency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == rates.Code);
 
-            existingCurrency.Rate = rate.Mid;
-            _context.Currencies.Update(existingCurrency);
+            if (existingCurrency == null)
+            {
+                // Dodaj nową walutę do bazy, jeśli nie istnieje
+                _context.Currencies.Add(new Currency
+                {
+                    Code = rates.Code,
+                    Rate = rate.Mid
+                });
+            }
+            else
+            {
+                // Zaktualizuj istniejący kurs
+                existingCurrency.Rate = rate.Mid;
+                _context.Currencies.Update(existingCurrency);
+            }
+
 
             // Dodaj dane historyczne
             var historicalData = new HistoricalData
@@ -103,6 +63,61 @@ public class CurrenciesController : Controller
             await _context.HistoricalDatas.AddAsync(historicalData);
         }
 
+    await _context.SaveChangesAsync();
+
+        var currencies = await _context.Currencies.ToListAsync();
+        return View(currencies);
+    }
+
+
+    // Refresh rates
+    [HttpPost]
+    public async Task<IActionResult> RefreshRates()
+    {
+        // Pobierz dynamiczną listę kodów walut z API
+        var currencyCodes = await _currencyService.GetAllCurrencyCodesAsync();
+
+        // Pobierz szczegółowe dane o kursach dla każdej waluty
+        var currencyRates = new List<CurrencyRate>();
+        foreach (var code in currencyCodes)
+        {
+            currencyRates.Add(await _currencyService.GetCurrencyRateAsync(code));
+        }
+
+        // Sprawdź i zaktualizuj kursy w bazie danych
+        foreach (var rates in currencyRates)
+        {
+            // Pobierz pierwszy (i jedyny) element z listy "Rates"
+            var rate = rates.Rates.First();
+
+            // Sprawdź, czy waluta już istnieje w bazie za pomocą pola "Code"
+            var existingCurrency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == rates.Code);
+
+            if (existingCurrency == null)
+            {
+                // Dodaj nową walutę do bazy, jeśli nie istnieje
+                _context.Currencies.Add(new Currency
+                {
+                    Code = rates.Code,
+                    Rate = rate.Mid
+                });
+            }
+            else
+            {
+                // Zaktualizuj istniejący kurs
+                existingCurrency.Rate = rate.Mid;
+                _context.Currencies.Update(existingCurrency);
+            }
+
+            // Dodaj dane historyczne
+            var historicalData = new HistoricalData
+            {
+                CurrencyCode = rates.Code,
+                Rate = rate.Mid,
+                Timestamp = DateTime.UtcNow
+            };
+            await _context.HistoricalDatas.AddAsync(historicalData);
+        }
 
         // Zapisz zmiany w bazie danych
         await _context.SaveChangesAsync();
@@ -112,6 +127,7 @@ public class CurrenciesController : Controller
         // Przekieruj użytkownika z powrotem do strony głównej
         return RedirectToAction(nameof(Index));
     }
+
 
     // GET: Currencies/Details/5
     public async Task<IActionResult> Details(int? id)
