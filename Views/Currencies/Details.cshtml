@@ -1,7 +1,7 @@
 ﻿@model Project.Models.Currency
-
 @{
     ViewData["Title"] = "Details";
+    var historicalData = ViewBag.HistoricalData as List<Project.Models.HistoricalData>;
 }
 
 <h1>Details</h1>
@@ -10,21 +10,59 @@
     <h4>Currency</h4>
     <hr />
     <dl class="row">
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Code)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Code)
         </dd>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Rate)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Rate)
         </dd>
     </dl>
 </div>
+
+<h4>Historical Data</h4>
+<div>
+    <canvas id="currencyChart"></canvas>
+</div>
+
 <div>
     <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Przekazanie danych historycznych do JavaScript
+    const historicalData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(historicalData));
+
+    // Przygotowanie danych dla Chart.js
+    const labels = historicalData.map(h => new Date(h.Timestamp).toLocaleString());
+    const data = historicalData.map(h => h.Rate);
+
+    // Tworzenie wykresu
+    new Chart(document.getElementById('currencyChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Rate History',
+                data: data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { type: 'category', title: { display: true, text: 'Timestamp' } },
+                y: { beginAtZero: false, title: { display: true, text: 'Rate' } }
+            }
+        }
+    });
+</script>

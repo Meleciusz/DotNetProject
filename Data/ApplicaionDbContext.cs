@@ -11,6 +11,7 @@ namespace Project.Data
         }
 
         public DbSet<Currency> Currencies { get; set; } //zbiór kursów
+        public DbSet<HistoricalData> HistoricalDatas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -23,6 +24,9 @@ namespace Project.Data
                 new Currency { Id = 3, Code = "GBP", Rate = 5.20m },   // Funt brytyjski
                 new Currency { Id = 4, Code = "PLN", Rate = 1.00m }    // Złoty (bazowy)
             );
+
+            modelBuilder.Entity<HistoricalData>().HasIndex(h => new { h.CurrencyCode, h.Timestamp });
+
         }
     }
 }

@@ -84,6 +84,26 @@ public class CurrenciesController : Controller
 
         }
 
+        // W metodzie RefreshRates
+        foreach (var rates in currencyRates)
+        {
+            var rate = rates.Rates.First();
+            var existingCurrency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == rates.Code);
+
+            existingCurrency.Rate = rate.Mid;
+            _context.Currencies.Update(existingCurrency);
+
+            // Dodaj dane historyczne
+            var historicalData = new HistoricalData
+            {
+                CurrencyCode = rates.Code,
+                Rate = rate.Mid,
+                Timestamp = DateTime.UtcNow
+            };
+            await _context.HistoricalDatas.AddAsync(historicalData);
+        }
+
+
         // Zapisz zmiany w bazie danych
         await _context.SaveChangesAsync();
 
@@ -101,15 +121,25 @@ public class CurrenciesController : Controller
             return NotFound();
         }
 
-        var currency = await _context.Currencies
-            .FirstOrDefaultAsync(m => m.Id == id);
+        var currency = await _context.Currencies.FirstOrDefaultAsync(m => m.Id == id);
         if (currency == null)
         {
             return NotFound();
         }
 
+        // Pobierz dane historyczne dla danej waluty
+        var historicalData = await _context.HistoricalDatas
+            .Where(h => h.CurrencyCode == currency.Code)
+            .OrderBy(h => h.Timestamp)
+            .ToListAsync();
+
+        // Przekaż dane historyczne do widoku za pomocą ViewBag
+        ViewBag.HistoricalData = historicalData;
+
         return View(currency);
     }
+
+
 
     // GET: Currencies/Create
     public IActionResult Create()
