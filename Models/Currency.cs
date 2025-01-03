@@ -13,5 +13,10 @@ namespace Project.Models
         [Required]
         [DataType(DataType.Currency)]
         public decimal Rate { get; set; }  // Kurs waluty względem PLN
+
+        [Required]
+        public string Name { get; set; }  // Name
+
+        public bool isAddedByUser { get; set; } // Flaga
     }
 }

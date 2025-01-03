@@ -32,7 +32,12 @@
                 <td>@currency.Code</td>
                 <td>@currency.Rate.ToString("F2")</td>
                 <td>
-                    <a asp-action="Details" asp-route-id="@currency.Id">Details</a> |
+                    <a asp-action="Details" asp-route-id="@currency.Id">Details</a>
+                    @if (currency.isAddedByUser)
+                    {
+                        <a asp-action="Edit" asp-route-id="@currency.Id" class="btn btn-warning">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@currency.Id" class="btn btn-danger">Delete</a>
+                    }
                 </td>
             </tr>
         }

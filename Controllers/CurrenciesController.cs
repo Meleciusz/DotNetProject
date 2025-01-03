@@ -2,9 +2,6 @@
 using Microsoft.EntityFrameworkCore; // Dodane
 using Project.Data;
 using Project.Models;
-using static System.Reflection.Metadata.BlobBuilder;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 public class CurrenciesController : Controller
 {
@@ -42,7 +39,8 @@ public class CurrenciesController : Controller
                 _context.Currencies.Add(new Currency
                 {
                     Code = rates.Code,
-                    Rate = rate.Mid
+                    Rate = rate.Mid,
+                    Name = rates.Currency,
                 });
             }
             else
@@ -63,7 +61,24 @@ public class CurrenciesController : Controller
             await _context.HistoricalDatas.AddAsync(historicalData);
         }
 
-    await _context.SaveChangesAsync();
+        // Uwzględnij waluty dodane przez użytkownika
+        var userAddedCurrencies = await _context.Currencies
+            .Where(c => c.isAddedByUser)
+            .ToListAsync();
+
+        foreach (var userCurrency in userAddedCurrencies)
+        {
+            // Dodaj dane historyczne dla walut użytkownika
+            var historicalData = new HistoricalData
+            {
+                CurrencyCode = userCurrency.Code,
+                Rate = userCurrency.Rate, // Aktualny kurs użytkownika
+                Timestamp = DateTime.UtcNow
+            };
+            await _context.HistoricalDatas.AddAsync(historicalData);
+        }
+
+        await _context.SaveChangesAsync();
 
         var currencies = await _context.Currencies.ToListAsync();
         return View(currencies);
@@ -99,13 +114,15 @@ public class CurrenciesController : Controller
                 _context.Currencies.Add(new Currency
                 {
                     Code = rates.Code,
-                    Rate = rate.Mid
+                    Rate = rate.Mid,
+                    Name = rates.Currency,
                 });
             }
             else
             {
                 // Zaktualizuj istniejący kurs
                 existingCurrency.Rate = rate.Mid;
+                existingCurrency.Name = rates.Currency;
                 _context.Currencies.Update(existingCurrency);
             }
 
@@ -114,6 +131,23 @@ public class CurrenciesController : Controller
             {
                 CurrencyCode = rates.Code,
                 Rate = rate.Mid,
+                Timestamp = DateTime.UtcNow
+            };
+            await _context.HistoricalDatas.AddAsync(historicalData);
+        }
+
+        // Uwzględnij waluty dodane przez użytkownika
+        var userAddedCurrencies = await _context.Currencies
+            .Where(c => c.isAddedByUser)
+            .ToListAsync();
+
+        foreach (var userCurrency in userAddedCurrencies)
+        {
+            // Dodaj dane historyczne dla walut użytkownika
+            var historicalData = new HistoricalData
+            {
+                CurrencyCode = userCurrency.Code,
+                Rate = userCurrency.Rate, // Aktualny kurs użytkownika
                 Timestamp = DateTime.UtcNow
             };
             await _context.HistoricalDatas.AddAsync(historicalData);
@@ -166,15 +200,106 @@ public class CurrenciesController : Controller
     // POST: Currencies/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Title,Description,Author")] Currency currency)
+    public async Task<IActionResult> Create([Bind("Name,Code,Rate")] Currency currency)
     {
+
+        var existingCurrency = await _context.Currencies
+            .FirstOrDefaultAsync(c => c.Code == currency.Code);
+
+        if (existingCurrency != null)
+        {
+            ModelState.AddModelError("Code", "Currency code must be unique.");
+        }
+
+
         if (ModelState.IsValid)
         {
+            currency.isAddedByUser = true;
             _context.Add(currency);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
         return View(currency);
     }
+
+    // GET: Currencies/Edit/5
+    public async Task<IActionResult> Edit(int? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var currency = await _context.Currencies.FindAsync(id);
+        if (currency == null || !currency.isAddedByUser) // Tylko waluty użytkownika mogą być edytowane
+        {
+            return NotFound();
+        }
+
+        return View(currency);
+    }
+
+    // POST: Currencies/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Code,Rate,Name")] Currency currency)
+    {
+        if (id != currency.Id)
+        {
+            return NotFound();
+        }
+
+        var existingCurrency = await _context.Currencies.FindAsync(id);
+        if (existingCurrency == null || !existingCurrency.isAddedByUser)
+        {
+            return NotFound();
+        }
+
+        if (ModelState.IsValid)
+        {
+            existingCurrency.Code = currency.Code;
+            existingCurrency.Rate = currency.Rate;
+            existingCurrency.Name = currency.Name;
+
+            _context.Update(existingCurrency);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+        return View(currency);
+    }
+
+    // GET: Currencies/Delete/5
+    public async Task<IActionResult> Delete(int? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var currency = await _context.Currencies
+            .FirstOrDefaultAsync(c => c.Id == id && c.isAddedByUser); // Tylko waluty użytkownika
+        if (currency == null)
+        {
+            return NotFound();
+        }
+
+        return View(currency);
+    }
+
+
+    // POST: Currencies/Delete/5
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var currency = await _context.Currencies.FindAsync(id);
+        if (currency != null && currency.isAddedByUser) // Usuń tylko waluty użytkownika
+        {
+            _context.Currencies.Remove(currency);
+            await _context.SaveChangesAsync();
+        }
+        return RedirectToAction(nameof(Index));
+    }
+
 
 }
