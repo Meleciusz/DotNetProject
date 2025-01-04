@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "Ask";
+}
+
+<h1>Ask</h1>
+
+<h2>Wybierz pytanie</h2>
+
+<div class="btn-group" role="group">
+    <!-- Przycisk obsługiwany przez OpenAI -->
+    <form method="post" asp-action="Ask">
+        <button type="submit" name="question" value="W jaką walutę najlepiej teraz inwestować" class="btn btn-primary">
+            W jaką walutę najlepiej teraz inwestować?
+        </button>
+    </form>
+
+    <form method="post" asp-action="Ask">
+        <button type="submit" name="question" value="Jakie kursy najbardziej się wahają, a jakie są bardzo stałe" class="btn btn-secondary">
+            Jakie kursy najbardziej się wahają, a jakie są bardzo stałe?
+        </button>
+    </form>
+</div>
+
+<hr />
+
+<h2>Zadaj swoje pytanie</h2>
+
+<form method="post" asp-action="AskCustom">
+    <label for="customQuestion">Twoje pytanie:</label>
+    <textarea id="customQuestion" name="customQuestion" rows="4" cols="50" class="form-control"></textarea>
+
+    <br />
+
+    <button type="submit" class="btn btn-success">Wyślij</button>
+</form>
+
+<hr />
+
+@if (ViewBag.Response != null)
+{
+    <h3>Odpowiedź:</h3>
+    <p>@ViewBag.Response</p>
+}
+
+@if (ViewBag.Error != null)
+{
+    <p style="color: red;">@ViewBag.Error</p>
+}

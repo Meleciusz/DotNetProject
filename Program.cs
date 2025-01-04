@@ -7,6 +7,11 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddHttpClient<CurrencyService>();
 
+builder.Services.AddHttpClient<OpenAiService>();
+
+builder.Services.AddHttpClient<AI21Service>();
+
+
 // Dodaj DbContext do us³ug
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -35,5 +40,6 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Currencies}/{action=Index}/{id?}");
+
 
 app.Run();
