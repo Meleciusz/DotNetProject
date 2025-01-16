@@ -18,5 +18,7 @@ namespace Project.Models
         public string Name { get; set; }  // Name
 
         public bool isAddedByUser { get; set; } // Flaga
+
+        public bool IsFavorite { get; set; } // Flaga
     }
 }

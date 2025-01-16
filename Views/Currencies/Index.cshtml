@@ -18,17 +18,49 @@
     <a asp-action="Create">Create New</a>
 </p>
 
+<!-- Wbudowane style CSS -->
+<style>
+    /* Stylowanie gwiazdek */
+    .text-gray {
+        color: gray; /* Niewybrane gwiazdki będą szare */
+    }
+
+    .text-gold {
+        color: gold; /* Wybrane gwiazdki będą złote */
+    }
+
+    /* Ustawienie gwiazdek na prawą stronę */
+    .btn {
+        display: inline-flex;
+        justify-content: flex-end; /* Dosunięcie do prawej */
+        padding: 0; /* Usuwanie dodatkowych paddingów */
+        border: none; /* Usuwanie obramowania */
+    }
+
+        /* Opcjonalnie: ustawienie paddingu w gwiazdce */
+        .btn i {
+            font-size: 1.5rem; /* Możesz dostosować rozmiar ikony */
+            padding-left: 100px; /* Wyrównanie w prawo */
+        }
+
+        /* Dodatkowo możesz dodać styl na hover */
+        .btn:hover i {
+            color: gold; /* Zmiana koloru przy najechaniu */
+        }
+</style>
+
 <table class="table">
     <thead>
         <tr>
             <th>Code</th>
             <th>Rate</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
         @foreach (var currency in Model)
         {
-            <tr>
+            <tr class="@(currency.IsFavorite ? "table-warning font-weight-bold" : "")">
                 <td>@currency.Code</td>
                 <td>@currency.Rate.ToString("F2")</td>
                 <td>
@@ -38,6 +70,12 @@
                         <a asp-action="Edit" asp-route-id="@currency.Id" class="btn btn-warning">Edit</a>
                         <a asp-action="Delete" asp-route-id="@currency.Id" class="btn btn-danger">Delete</a>
                     }
+                    <!-- Przycisk do zaznaczenia ulubionej waluty -->
+                    <form asp-action="ToggleFavorite" method="post" asp-route-id="@currency.Id" style="display:inline;">
+                        <button type="submit" class="btn @(currency.IsFavorite ? "btn-gold" : "btn-gray")">
+                            <i class="fas fa-star @(currency.IsFavorite ? "text-gold" : "text-gray")"></i>
+                        </button>
+                    </form>
                 </td>
             </tr>
         }
@@ -53,12 +91,10 @@
 
 <!-- JavaScript do automatycznego znikania komunikatu -->
 <script>
-    // Sprawdzamy, czy element komunikatu istnieje
     var messageElement = document.getElementById("successMessage");
     if (messageElement) {
-        // Ukrywamy komunikat po 2 sekundach
         setTimeout(function () {
             messageElement.style.display = "none";
-        }, 2000); // 2000 ms = 2 sekundy
+        }, 2000);
     }
 </script>

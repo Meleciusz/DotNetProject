@@ -16,6 +16,7 @@ public class CurrenciesController : Controller
 
     public async Task<IActionResult> Index()
     {
+
         // Pobierz dynamiczną listę kodów walut z API
         var currencyCodes = await _currencyService.GetAllCurrencyCodesAsync();
 
@@ -27,6 +28,7 @@ public class CurrenciesController : Controller
             currencyRates.Add(await _currencyService.GetCurrencyRateAsync(code));
         }
 
+       
         // Aktualizacja bazy danych
         foreach (var rates in currencyRates)
         {
@@ -81,7 +83,26 @@ public class CurrenciesController : Controller
         await _context.SaveChangesAsync();
 
         var currencies = await _context.Currencies.ToListAsync();
-        return View(currencies);
+        var currencies_ = currencies.OrderByDescending(c => c.IsFavorite).ToList();
+
+
+        return View(currencies_);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ToggleFavorite(int id)
+    {
+        var currency = await _context.Currencies.FindAsync(id);
+        if (currency != null)
+        {
+            currency.IsFavorite = !currency.IsFavorite;  // Przełączamy status ulubionej waluty
+            _context.Update(currency);
+            await _context.SaveChangesAsync();
+        }
+
+        await RefreshRates();
+
+        return RedirectToAction(nameof(Index));
     }
 
 
